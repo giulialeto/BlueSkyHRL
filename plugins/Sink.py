@@ -51,7 +51,9 @@ class Sink(core.Entity):
         with self.settrafarrays():
             self.last_lat = np.array([])
             self.last_lon = np.array([])
-
+        
+        self.create_sinks = True
+        
         # with traf.settrafarrays():
         #     traf.control_mode = np.array([]) # 0 = CR, 1 = Merge
 
@@ -60,7 +62,19 @@ class Sink(core.Entity):
         for id in traf.id:
             self._get_terminated(id)
         self._update_positions()
-    
+        self.init_sinks()
+
+        # continuous check if the sinks have been created already because of stack delay
+    def init_sinks(self):
+        if self.create_sinks:
+            self.line_sinks = []
+            shapes = tools.areafilter.basic_shapes
+            if shapes:
+                for rwy in self.runway:
+                    line_sink = Path(np.reshape(shapes[f'SINK{rwy}'].coordinates, (len(shapes[f'SINK{rwy}'].coordinates) // 2, 2)))
+                    self.line_sinks.append(line_sink)
+                self.create_sinks = False
+
     def create(self, n=1):
         super().create(n)
         self.last_lat[-n:] = traf.lat[-n:]
@@ -104,12 +118,8 @@ class Sink(core.Entity):
         or if it has missed approach by coming in with a too high turn radius requirements (RESTRICT)
         """
         idx = traf.id2idx(id)
-        shapes = tools.areafilter.basic_shapes
         line_ac = Path(np.array([[self.last_lat[idx], self.last_lon[idx]],[traf.lat[idx], traf.lon[idx]]]))
-        for rwy in self.runway:
-            line_sink = Path(np.reshape(shapes[f'SINK{rwy}'].coordinates, (len(shapes[f'SINK{rwy}'].coordinates) // 2, 2)))
-            # line_restrict = Path(np.reshape(shapes['RESTRICT'].coordinates, (len(shapes['RESTRICT'].coordinates) // 2, 2)))
-
+        for line_sink in self.line_sinks:
             if line_sink.intersects_path(line_ac):
                 if self.del_bool:
                     stack.stack(f'DEL {id}')
