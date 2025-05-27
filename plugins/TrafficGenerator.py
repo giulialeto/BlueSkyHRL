@@ -53,11 +53,11 @@ class TrafficGenerator(core.Entity):
             self._get_next_arrival()
         self.time_elapsed += DT
         
-        vmin, vmax, _, _ = traf.perf.currentlimits()
-        print(vmin)
-        print(vmax)
-        print(traf.alt)
-        print(traf.cas)
+        # vmin, vmax, _, _ = traf.perf.currentlimits()
+        # print(vmin)
+        # print(vmax)
+        # print(traf.alt)
+        # print(traf.cas)
 
     def _get_next_arrival(self):
         self.next_arrival = np.random.exponential(scale=self.mean_seconds_per_ac)
