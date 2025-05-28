@@ -123,6 +123,10 @@ class Sink(core.Entity):
             if line_sink.intersects_path(line_ac):
                 if self.del_bool:
                     stack.stack(f'DEL {id}')
+                    print(traf.alt[idx])
+                    # if traf.alt[idx] > 2000:
+                    #     import code
+                    #     code.interact(local=locals())
                 else:
                     traf.control_mode[idx] = 1
 

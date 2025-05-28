@@ -1,5 +1,5 @@
 from bluesky import core, stack, traf, tools, settings 
-from bluesky.tools.aero import Rearth
+from bluesky.tools.aero import Rearth, ft, fpm, vcas2tas
 from stable_baselines3 import SAC
 import numpy as np
 import math
@@ -7,7 +7,10 @@ from matplotlib.path import Path
 import plugins.SingleAgentPathPlanningTools as SAPP
 from plugins.Sink import Sink
 
-PROJECTION_DISTANCE = 5 #km
+# PROJECTION_DISTANCE = 25 #km
+GLIDE_SLOPE = np.deg2rad(3) #degrees
+TARGET_ALTITUDE_PM = 1500 #meters, target altitude at point merge start
+ALT_CONTROL_TIMESTEP = 15
 
 def init_plugin():
     singleagentpathplanning = SingleAgentPathPlanning()
@@ -22,10 +25,11 @@ def init_plugin():
     return config
 
 class SingleAgentPathPlanning(core.Entity):  
-    def __init__(self):
+    def __init__(self, altitude=True):
         super().__init__()
         self.model = SAC.load(f"plugins/SingleAgentPathPlanningTools/model", env=None)
         self.sink = Sink()
+        self.altitude = altitude
         with traf.settrafarrays():
             traf.target_heading = np.array([])
             traf.distance_remaining = np.array([])
@@ -38,8 +42,16 @@ class SingleAgentPathPlanning(core.Entity):
             obs = self._get_obs(idx)
             action, _ = self.model.predict(obs, deterministic=True)
             self._set_action(action,idx)
-            self._get_remaining_distance(idx,traf)
     
+    @core.timed_function(dt=ALT_CONTROL_TIMESTEP)
+    def update_altitude(self):
+        if self.altitude:
+            for id in traf.id:
+                idx = traf.id2idx(id)
+                gs = traf.gs[idx]
+                self._get_remaining_distance(idx,traf)
+                self._set_altitude(id,idx)
+
     def create(self, n=1):
         super().create(n)
         self.update()
@@ -70,8 +82,8 @@ class SingleAgentPathPlanning(core.Entity):
         traf.target_heading[idx] = bearing
         traf.ap.selhdgcmd(idx,bearing) # could consider HDG stack command here
 
-    def _project_path(self, action, lat, lon):
-        distance = PROJECTION_DISTANCE
+    def _project_path(self, action, lat, lon, idx):
+        distance = traf.gs[idx]*SAPP.constants.TIMESTEP/1000
         bearing = math.atan2(action[0],action[1])
 
         ac_lat = np.deg2rad(lat)
@@ -92,6 +104,10 @@ class SingleAgentPathPlanning(core.Entity):
         return lon + math.atan2(math.sin(bearing)*math.sin(radius/R)*\
                         math.cos(lat1),math.cos(radius/R)-math.sin(lat1)*math.sin(lat2))
 
+    @stack.command
+    def print_remaining_distance(self, acid: 'acid'):
+        print(traf.distance_remaining[acid])
+
     def _get_remaining_distance(self, idx, traf):
         finished = False
         obs = self._get_obs(idx)
@@ -100,26 +116,55 @@ class SingleAgentPathPlanning(core.Entity):
         distance = 0
         while not finished:
             action, _ = self.model.predict(obs, deterministic=True)
-            _lat, _lon = self._project_path(action,lat,lon)
+            _lat, _lon = self._project_path(action,lat,lon,idx)
             line_ac = Path(np.array([[lat,lon],[_lat,_lon]]))
             for line_sink in self.sink.line_sinks:
                 if line_sink.intersects_path(line_ac):
                     finished = True
-                    _, dis_orig = tools.geo.kwikqdrdist(SAPP.constants.SCHIPHOL[0], SAPP.constants.SCHIPHOL[1], traf.lat[idx], traf.lon[idx])
+                    ls = line_sink.vertices
+                    dis_orig = 1000
+                    for l in ls:
+                        _, dis = tools.geo.kwikqdrdist(l[0], l[1], lat, lon)
+                        if dis < dis_orig:
+                            dis_orig = dis
                     distance += dis_orig*SAPP.constants.NM2KM
 
             if distance > 1000:
                 finished = True
 
             if not finished:
-                distance += PROJECTION_DISTANCE
+                distance += traf.gs[idx]*SAPP.constants.TIMESTEP/1000
                 lat, lon = _lat, _lon
                 obs = self._get_obs(lat=lat,lon=lon)
             
         traf.distance_remaining[idx] = distance
-        if idx == 0:
-            print(traf.distance_remaining[0])
+        # if idx == 0:
+        #     print(traf.distance_remaining[0], traf.alt[0])
 
+    def _set_altitude(self,id,idx):
+        if traf.distance_remaining.any():
+            distance_remaining = max(0,traf.distance_remaining[idx] - (traf.gs[idx]*ALT_CONTROL_TIMESTEP)/1000)
+            # distance_remaining = max(0,traf.distance_remaining[idx] - (traf.gs[idx]*SAPP.constants.TIMESTEP)/1000)
+            target_altitude = TARGET_ALTITUDE_PM + distance_remaining*np.tan(GLIDE_SLOPE)*1000 # in meters
+            vert_speed = np.tan(GLIDE_SLOPE)*traf.gs[idx] # in meters/sec
+            if target_altitude < traf.alt[idx]:
+                stack.stack(f"ALT {id} {target_altitude/ft} {100*vert_speed/fpm}")
+            
+            ## block that check how long before PM ac at target altitude
+            # if traf.alt[idx] == TARGET_ALTITUDE_PM:
+            #     dis_orig = 1000
+            #     for line_sink in self.sink.line_sinks:
+            #         ls = line_sink.vertices
+            #         for l in ls:
+            #             _, dis = tools.geo.kwikqdrdist(l[0], l[1], traf.lat[idx], traf.lon[idx])
+            #             if dis < dis_orig:
+            #                 dis_orig = dis
+            #     print(dis_orig*SAPP.constants.NM2KM)
+            # if idx == 0:
+            #     print(traf.distance_remaining[0], traf.alt[0], target_altitude)
+        else:
+            print('altitude control plugin only works when traf.distance_remaining exists')
+            print('try including a pathplanning plugin')
 
 
 

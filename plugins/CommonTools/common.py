@@ -1,7 +1,7 @@
 airspace_radius = 300 # km
 schiphol = [52.3068953,4.760783]
 
-altitude_min = 100 # minimum altitude at 'airspace_radius' in meters
+altitude_min = 7000 # minimum altitude at 'airspace_radius' in meters
 altitude_max = 10000 # maximum altitude at 'airspace_radius' in meters
 
 initial_cas = 133 # m/s, optimal CAS for A320 based on OpenAP
