@@ -27,7 +27,7 @@ IAF_DISTANCE = 30 #km, from FAF
 
 IAF_ANGLE = 60 #degrees, symmetrical around FAF
 
-DELETE = True
+DELETE = False
 
 def init_plugin():
     sink = Sink()
@@ -54,8 +54,8 @@ class Sink(core.Entity):
         
         self.create_sinks = True
         
-        # with traf.settrafarrays():
-        #     traf.control_mode = np.array([]) # 0 = CR, 1 = Merge
+        with traf.settrafarrays():
+            traf.control_mode = np.array([]) # 0 = CR, 1 = Merge
 
     @core.timed_function(name='Sink', dt=5)
     def update(self):
@@ -79,7 +79,7 @@ class Sink(core.Entity):
         super().create(n)
         self.last_lat[-n:] = traf.lat[-n:]
         self.last_lon[-n:] = traf.lon[-n:]
-        # traf.control_mode[-n:] = np.zeros(n)
+        traf.control_mode[-n:] = np.zeros(n)
 
     def _set_terminal_conditions(self):
         """
