@@ -7,7 +7,7 @@ import plugins.FlightEnvelope as fe
 
 import numpy as np
 
-settings.set_variable_defaults(TrafficDemandLevel=60) # aircraft per hour
+settings.set_variable_defaults(TrafficDemandLevel=100) # aircraft per hour
 settings.set_variable_defaults(TotalFlights=10.000) # total number of flights to be generated in the scenario file
 
 

@@ -80,7 +80,8 @@ class SingleAgentPathPlanning(core.Entity):
     def _set_action(self, action, idx):
         bearing = np.rad2deg(np.arctan2(action[0],action[1]))
         traf.target_heading[idx] = bearing
-        traf.ap.selhdgcmd(idx,bearing) # could consider HDG stack command here
+        if traf.merge_rwy[idx] == 0:
+            traf.ap.selhdgcmd(idx,bearing) # could consider HDG stack command here
 
     def _project_path(self, action, lat, lon, idx):
         distance = traf.gs[idx]*SAPP.constants.TIMESTEP/1000

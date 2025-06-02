@@ -55,16 +55,18 @@ class Sink(core.Entity):
         self.create_sinks = True
         
         with traf.settrafarrays():
-            traf.control_mode = np.array([]) # 0 = CR, 1 = Merge
+            traf.merge_rwy = [] # 0 = CR, anders merge in specifieke runway
+
+        self.count = 0
 
     @core.timed_function(name='Sink', dt=5)
     def update(self):
+        # continuous check if the sinks have been created already because of stack delay
+        self.init_sinks()
         for id in traf.id:
             self._get_terminated(id)
         self._update_positions()
-        self.init_sinks()
-
-        # continuous check if the sinks have been created already because of stack delay
+        
     def init_sinks(self):
         if self.create_sinks:
             self.line_sinks = []
@@ -79,7 +81,7 @@ class Sink(core.Entity):
         super().create(n)
         self.last_lat[-n:] = traf.lat[-n:]
         self.last_lon[-n:] = traf.lon[-n:]
-        traf.control_mode[-n:] = np.zeros(n)
+        traf.merge_rwy[-n:] = [0]*n
 
     def _set_terminal_conditions(self):
         """
@@ -119,7 +121,7 @@ class Sink(core.Entity):
         """
         idx = traf.id2idx(id)
         line_ac = Path(np.array([[self.last_lat[idx], self.last_lon[idx]],[traf.lat[idx], traf.lon[idx]]]))
-        for line_sink in self.line_sinks:
+        for line_sink, rwy in zip(self.line_sinks, self.runway):
             if line_sink.intersects_path(line_ac):
                 if self.del_bool:
                     stack.stack(f'DEL {id}')
@@ -128,7 +130,12 @@ class Sink(core.Entity):
                     #     import code
                     #     code.interact(local=locals())
                 else:
-                    traf.control_mode[idx] = 1
+                    traf.merge_rwy[idx] = rwy
+                    self.count += 1
+
+        # if self.count > 100:
+        #     import code
+        #     code.interact(local=locals())
 
     def _update_positions(self):
         self.last_lat = traf.lat

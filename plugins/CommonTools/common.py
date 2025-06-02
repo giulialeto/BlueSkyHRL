@@ -1,5 +1,13 @@
+import numpy as np
+
+# Conversion factors
+NM2KM = 1.852
+MpS2Kt = 1.94384
+FL2M = 30.48
+
 airspace_radius = 300 # km
-schiphol = [52.3068953,4.760783]
+schiphol = np.array([52.3068953,4.760783])
+
 
 altitude_min = 7000 # minimum altitude at 'airspace_radius' in meters
 altitude_max = 10000 # maximum altitude at 'airspace_radius' in meters
