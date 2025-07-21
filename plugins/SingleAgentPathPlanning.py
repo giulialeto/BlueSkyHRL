@@ -9,7 +9,7 @@ from plugins.Sink import Sink
 
 # PROJECTION_DISTANCE = 25 #km
 GLIDE_SLOPE = np.deg2rad(3) #degrees
-TARGET_ALTITUDE_PM = 1000 #meters, target altitude at point merge start
+TARGET_ALTITUDE_PM = 2900 #meters, target altitude at point merge start
 ALT_CONTROL_TIMESTEP = 15
 
 def init_plugin():
