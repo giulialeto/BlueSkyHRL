@@ -8,7 +8,7 @@ FL2M = 30.48
 INTRUSION_DISTANCE = 5 # NM
 
 # Model parameters
-D_HEADING = 5 #22.5 #22.5 # deg
+D_HEADING = 22.5 #5 # deg
 D_VELOCITY = 20/3 # kts
 
 TIMESTEP = 5
