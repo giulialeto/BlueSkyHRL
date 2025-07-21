@@ -41,7 +41,8 @@ class MultiAgentConflictResolutionAttention(core.Entity):
 
             for id, action in zip(traf.id,act_array[0]):
                 idx = traf.id2idx(id)
-                self._set_action(action,idx)
+                if traf.merge_rwy[idx] == 0:
+                    self._set_action(action,idx)
         else:
             pass
     
