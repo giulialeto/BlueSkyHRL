@@ -7,7 +7,7 @@ import plugins.FlightEnvelope as fe
 
 import numpy as np
 
-settings.set_variable_defaults(TrafficDemandLevel=100) # aircraft per hour
+settings.set_variable_defaults(TrafficDemandLevel=60) # aircraft per hour
 settings.set_variable_defaults(TotalFlights=10.000) # total number of flights to be generated in the scenario file
 
 
@@ -52,15 +52,10 @@ class TrafficGenerator(core.Entity):
             self._spawn_aircraft()
             self._get_next_arrival()
         self.time_elapsed += DT
-        
-        # vmin, vmax, _, _ = traf.perf.currentlimits()
-        # print(vmin)
-        # print(vmax)
-        # print(traf.alt)
-        # print(traf.cas)
 
     def _get_next_arrival(self):
         self.next_arrival = np.random.exponential(scale=self.mean_seconds_per_ac)
+        # self.next_arrival = self.mean_seconds_per_ac
         self.time_elapsed = 0
         
     def _spawn_aircraft(self):
@@ -76,6 +71,16 @@ class TrafficGenerator(core.Entity):
         
         """
         spawn_bearing = np.random.uniform(0,360)
+
+        # Better divide 27 / 36
+        # spawn_bearing_1 = np.random.uniform(180,440)
+        # spawn_bearing_2 = np.random.uniform(80,180)
+        # choice = np.random.choice(2)
+        # if choice == 1:
+        #     spawn_bearing = spawn_bearing_2
+        # else:
+        #     spawn_bearing = spawn_bearing_1
+
         spawn_distance = common.airspace_radius
 
         spawn_lat, spawn_lon = fn.get_point_at_distance(common.schiphol[0],common.schiphol[1],spawn_distance,spawn_bearing)
