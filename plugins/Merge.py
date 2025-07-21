@@ -7,6 +7,7 @@ from plugins.CommonTools.common import runways_schiphol_faf, NM2KM, schiphol, Mp
 import torch
 
 FAF_DISTANCE = 25 #km
+STRAIGHT_RWY = True
 
 D_HEADING = 22.5 # deg
 D_VELOCITY = 20/3 # kts
@@ -15,7 +16,7 @@ M2FEET = 3.2808
 GLIDE_SLOPE = 3 #degree
 ALT_PER_KM = (np.tan(np.radians(GLIDE_SLOPE))*1000)*M2FEET #feet
 
-DISTANCE_MARGIN_FAF = 1 # km
+DISTANCE_MARGIN_FAF = 2 # km
 DISTANCE_MARGIN_RWY = 5 # km
 
 def init_plugin():
@@ -39,7 +40,7 @@ class Merge(core.Entity):
                                                             out_dim = 2,
                                                             num_heads = 5,
                                                             dropout_rate=0)
-        self.model.load_state_dict(torch.load("plugins/MergeTools/weights_v1/actor.pt"))
+        self.model.load_state_dict(torch.load("plugins/MergeTools/weights_v2/actor.pt"))
         self.model.set_test(True)
 
         with self.settrafarrays():
@@ -67,9 +68,6 @@ class Merge(core.Entity):
                 for id, action in zip(ids,act_array[0]):
                     idx = traf.id2idx(id)
                     self._set_action(action,idx, runway)
-                
-                # import code
-                # code.interact(local=locals())
 
             else:
                 self._set_zero_drift(ids[0], runway)
@@ -78,23 +76,6 @@ class Merge(core.Entity):
                 idx = traf.id2idx(id)
                 self._check_waypoint(idx)
             
-        
-        # here I should write a check for all the runways and corresponding aircraft
-        # then follow a similar logic to CR -> see below
-
-        # if len(traf.id) > 0:
-        #     observations = self._get_obs()
-        #     obs_array = np.array(list(observations.values()))
-        #     # obs_array = np.clip(obs_array,-5,5)
-        #     action = self.model(torch.FloatTensor(np.array([obs_array])))
-        #     action = np.array(action[0].detach().numpy())
-        #     act_array = np.clip(action, -1, 1)
-
-        #     for id, action in zip(traf.id,act_array[0]):
-        #         idx = traf.id2idx(id)
-        #         self._set_action(action,idx)
-        # else:
-        #     pass
     
     def create(self, n=1):
         super().create(n)
@@ -105,15 +86,6 @@ class Merge(core.Entity):
         """
         Observation is the normalized x and y coordinate of the aircraft
         """
-
-        # need to find a way to filter this for each merge environment
-        # probably add the runway identifier to the traffic object
-        # then get the IDs / indices for traffic in rwy a, b etc...
-        # for rwy in rwys:
-        #   ids = traf.id[traf.rwy == rwy]?
-        #   for id in ids:
-        #       start obs
-        # id = [id for rwy, id in zip(traf.merge_rwy, traf.id) if rwy == '18R']
 
         obs = []
 
@@ -192,8 +164,12 @@ class Merge(core.Entity):
         altitude = traf.alt[idx]
         speed_new = fn.get_speed_at_altitude(altitude,speed_new) * MpS2Kt
 
-        # print(speed_new)
-        stack.stack(f"HDG {traf.id[idx]} {heading_new}")
+        if STRAIGHT_RWY and self.wpt_reach[idx]:
+            runway = traf.merge_rwy[idx]
+            self._set_zero_drift(traf.id[idx],runway)
+        else:
+            stack.stack(f"HDG {traf.id[idx]} {heading_new}")
+
         stack.stack(f"SPD {traf.id[idx]} {speed_new}")
 
         req_altitude = self._get_altitude_command(traf.id[idx],runway)
