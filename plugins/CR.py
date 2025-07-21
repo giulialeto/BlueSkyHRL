@@ -26,7 +26,7 @@ class CR(core.Entity):
                                                             out_dim = 2,
                                                             num_heads = 5,
                                                             dropout_rate=0)
-        self.model.load_state_dict(torch.load("plugins/CRTools/weights_5deg/actor.pt"))
+        self.model.load_state_dict(torch.load("plugins/CRTools/weights/actor.pt"))
         self.model.set_test(True)
         with traf.settrafarrays():
             traf.target_heading = np.array([])
