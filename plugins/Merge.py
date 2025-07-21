@@ -71,6 +71,8 @@ class Merge(core.Entity):
 
             else:
                 self._set_zero_drift(ids[0], runway)
+                req_altitude = self._get_altitude_command(ids[0],runway)
+                stack.stack(f'ALT {ids[0]} {req_altitude}')
         
             for id in ids:
                 idx = traf.id2idx(id)
