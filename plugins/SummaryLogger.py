@@ -39,37 +39,40 @@ class SummaryLogger(core.Entity):
         self.total_intrusions = 0
         self.total_conflicts = 0
 
+        del_columns = ["ACID","runway","landing_time"]
+        self.del_data = pd.DataFrame(columns=del_columns)
+
     @core.timed_function(dt=1)
     def update(self):
+        if len(traf.id)>0:
+            noise = self.get_noise()
+            fuel = self.get_fuel()
 
-        noise = self.get_noise()
-        fuel = self.get_fuel()
+            new_data = pd.DataFrame({
+                'ACID': traf.id,
+                'total_noise': noise,
+                'total_fuel': fuel,
+                'flight_time': [1]*len(traf.id)
+            })
 
-        new_data = pd.DataFrame({
-            'ACID': traf.id,
-            'total_noise': noise,
-            'total_fuel': fuel,
-            'flight_time': [1]*len(traf.id)
-        })
+            merged_df = self.data.merge(new_data, on='ACID', how='outer', suffixes=('_old', '_new'))
 
-        merged_df = self.data.merge(new_data, on='ACID', how='outer', suffixes=('_old', '_new'))
+            merged_df['total_noise_old'].fillna(0, inplace=True)
+            merged_df['total_fuel_old'].fillna(0, inplace=True)
+            merged_df['flight_time_old'].fillna(0, inplace=True)
 
-        merged_df['total_noise_old'].fillna(0, inplace=True)
-        merged_df['total_fuel_old'].fillna(0, inplace=True)
-        merged_df['flight_time_old'].fillna(0, inplace=True)
+            merged_df['total_noise_new'].fillna(0, inplace=True)
+            merged_df['total_fuel_new'].fillna(0, inplace=True)
+            merged_df['flight_time_new'].fillna(0, inplace=True)
 
-        merged_df['total_noise_new'].fillna(0, inplace=True)
-        merged_df['total_fuel_new'].fillna(0, inplace=True)
-        merged_df['flight_time_new'].fillna(0, inplace=True)
+            merged_df['total_noise'] = merged_df['total_noise_old'] + merged_df['total_noise_new']
+            merged_df['total_fuel'] = merged_df['total_fuel_old'] + merged_df['total_fuel_new']
+            merged_df['flight_time'] = merged_df['flight_time_old'] + merged_df['flight_time_new']
 
-        merged_df['total_noise'] = merged_df['total_noise_old'] + merged_df['total_noise_new']
-        merged_df['total_fuel'] = merged_df['total_fuel_old'] + merged_df['total_fuel_new']
-        merged_df['flight_time'] = merged_df['flight_time_old'] + merged_df['flight_time_new']
+            self.data = merged_df[['ACID', 'total_noise', 'total_fuel', 'flight_time']].sort_values('ACID').reset_index(drop=True)
 
-        self.data = merged_df[['ACID', 'total_noise', 'total_fuel', 'flight_time']].sort_values('ACID').reset_index(drop=True)
-
-        self.total_intrusions = len(traf.cd.lospairs_all)
-        self.total_conflicts = len(traf.cd.confpairs_all)
+            self.total_intrusions = len(traf.cd.lospairs_all)
+            self.total_conflicts = len(traf.cd.confpairs_all)
 
     @core.timed_function(dt=SAVE_INTERVAL)
     def save(self):
@@ -77,9 +80,25 @@ class SummaryLogger(core.Entity):
         np.savetxt(f'{FOLDER}/intrusions.csv',np.array([self.total_intrusions]))
         np.savetxt(f'{FOLDER}/conflicts.csv',np.array([self.total_conflicts]))
 
+        self.del_data.to_csv(f'{FOLDER}/delete.csv', sep=',')
+
     def get_noise(self):
         noise = self.noise_logger.get_noise()
         return noise
+
+    def delete(self,idx):
+        acid = [traf.id[i] for i in idx]
+        rwy = [traf.merge_rwy[i] for i in idx]
+        time = sim.simt
+
+        new_data = pd.DataFrame({
+            "ACID": acid,
+            "runway": rwy,
+            "landing_time": time
+        })
+
+        self.del_data = pd.concat((self.del_data, new_data), ignore_index=True)
+        super().delete(idx)
 
     def get_fuel(self):
         fuel = self.fuel_logger.get_fuel()
