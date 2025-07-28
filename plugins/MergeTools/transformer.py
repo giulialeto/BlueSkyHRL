@@ -7,8 +7,9 @@ from typing import Tuple
 
 def query_key_from_state(state):
     # Extract req. info from observation
-    positions = torch.tensor(state[:,:,9:11])
-    velocities = torch.tensor(state[:,:,11:13])
+    positions = state[:,:,9:11].clone().detach()
+    velocities = state[:,:,11:13].clone().detach()
+
     speed = torch.norm(velocities, dim=-1, keepdim=True) 
     direction = velocities / (speed + 1e-8)
 
@@ -43,7 +44,7 @@ def query_key_from_state(state):
     relative_states = torch.cat((relative_states,r_trans),dim=-1)
 
     # Add track_error of the agents to the keys for intent information
-    track_error = torch.tensor(state[:,:,0:2])
+    track_error = state[:,:,0:2].clone().detach()
     track_error_expanded = track_error.unsqueeze(1).expand(-1, t, -1, -1)
     track_error_selected = track_error_expanded[mask].reshape(b, t, t-1, 2)
     relative_states = torch.cat([relative_states, track_error_selected], dim=-1)
@@ -55,7 +56,7 @@ def query_key_from_state(state):
     topk_indices_expanded = topk_indices.unsqueeze(-1).expand(-1, -1, -1, 7)
     relative_states = torch.gather(relative_states, dim=2, index=topk_indices_expanded)
 
-    q_x = state[:,:,0:9]
+    q_x = state[:,:,0:9].clone().detach()
     kv_x = relative_states
 
     return q_x, kv_x
