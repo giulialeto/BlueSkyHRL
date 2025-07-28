@@ -68,7 +68,7 @@ class FlightLogger(core.Entity):
         self.serials = np.array([]) # unsure what to log here
         self.hour = []
 
-    @core.timed_function(name='FlightLogger', dt=1)
+    @core.timed_function(name='FlightLogger', dt=10)
     def update(self):
         self.time.extend([sim.utc] * len(traf.id))
         self.icao24.extend(traf.id)
