@@ -57,8 +57,6 @@ class Sink(core.Entity):
         with traf.settrafarrays():
             traf.merge_rwy = [] # 0 = CR, anders merge in specifieke runway
 
-        self.count = 0
-
     @core.timed_function(name='Sink', dt=5)
     def update(self):
         # continuous check if the sinks have been created already because of stack delay
@@ -70,11 +68,14 @@ class Sink(core.Entity):
     def init_sinks(self):
         if self.create_sinks:
             self.line_sinks = []
+            self.line_restricts = []
             shapes = tools.areafilter.basic_shapes
             if shapes:
                 for rwy in self.runway:
                     line_sink = Path(np.reshape(shapes[f'SINK{rwy}'].coordinates, (len(shapes[f'SINK{rwy}'].coordinates) // 2, 2)))
                     self.line_sinks.append(line_sink)
+                    line_restrict = Path(np.reshape(shapes[f'RESTRICT{rwy}'].coordinates, (len(shapes[f'RESTRICT{rwy}'].coordinates) // 2, 2)))
+                    self.line_restricts.append(line_restrict)
                 self.create_sinks = False
 
     def create(self, n=1):
@@ -125,17 +126,15 @@ class Sink(core.Entity):
             if line_sink.intersects_path(line_ac):
                 if self.del_bool:
                     stack.stack(f'DEL {id}')
-                    print(traf.alt[idx])
-                    # if traf.alt[idx] > 2000:
-                    #     import code
-                    #     code.interact(local=locals())
                 else:
                     traf.merge_rwy[idx] = rwy
-                    self.count += 1
-
-        # if self.count > 100:
-        #     import code
-        #     code.interact(local=locals())
+            
+        for line_restrict, rwy in zip(self.line_restricts, self.runway):
+            if line_restrict.intersects_path(line_ac):
+                if self.del_bool:
+                    stack.stack(f'DEL {id}')
+                else:
+                    traf.merge_rwy[idx] = rwy
 
     def _update_positions(self):
         self.last_lat = traf.lat
