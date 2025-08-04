@@ -7,8 +7,8 @@ import plugins.FlightEnvelope as fe
 
 import numpy as np
 
-settings.set_variable_defaults(TrafficDemandLevel=60) # aircraft per hour
-settings.set_variable_defaults(TotalFlights=10.000) # total number of flights to be generated in the scenario file
+settings.set_variable_defaults(TrafficDemandLevel=15) # aircraft per hour
+settings.set_variable_defaults(TotalFlights=10000) # total number of flights to be generated in the scenario file
 
 
 DT = 1 # check for new aircraft every second
@@ -48,7 +48,7 @@ class TrafficGenerator(core.Entity):
 
     @core.timed_function(name='TrafficGenerator', dt=DT)
     def update(self):
-        if self.time_elapsed > self.next_arrival:
+        if self.time_elapsed > self.next_arrival and self.flights_spawned < self.total_flights:
             self._spawn_aircraft()
             self._get_next_arrival()
         self.time_elapsed += DT
