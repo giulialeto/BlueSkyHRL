@@ -6,6 +6,9 @@ import plugins.CommonTools.functions as fn
 from plugins.CommonTools.common import runways_schiphol_faf, NM2KM, schiphol, MpS2Kt
 import torch
 
+MIN_DIST_CORR = True
+MIN_DIST = 45 #NM
+
 def init_plugin():
     cr = CR()
     # Configuration parameters
@@ -36,13 +39,21 @@ class CR(core.Entity):
         if len(traf.id) > 0:
             observations = self._get_obs()
             obs_array = np.array(list(observations.values()))
+
             action = self.model(torch.FloatTensor(np.array([obs_array])))
             action = np.array(action[0].detach().numpy())
             act_array = np.clip(action, -1, 1)
 
             for id, action in zip(traf.id,act_array[0]):
                 idx = traf.id2idx(id)
-                if traf.merge_rwy[idx] == 0:
+                if MIN_DIST_CORR:
+                    _, dist = tools.geo.kwikqdrdist_matrix(traf.lat[idx],traf.lon[idx],traf.lat,traf.lon)
+                    dist = dist[dist>0]
+                    if (dist.size == 0 or min(dist) > MIN_DIST) and traf.merge_rwy[idx] == 0:
+                        stack.stack(f"HDG {id} {traf.target_heading[idx]}")
+                    elif traf.merge_rwy[idx] == 0:
+                        self._set_action(action,idx)
+                elif traf.merge_rwy[idx] == 0:
                     self._set_action(action,idx)
         else:
             pass
