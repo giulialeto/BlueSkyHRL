@@ -6,11 +6,15 @@ import math
 from matplotlib.path import Path
 import plugins.SingleAgentPathPlanningTools as SAPP
 from plugins.Sink import Sink
+from plugins.CommonTools.functions import get_speed_at_altitude
+from plugins.CommonTools.common import MpS2Kt
 
 # PROJECTION_DISTANCE = 25 #km
 GLIDE_SLOPE = np.deg2rad(3) #degrees
 TARGET_ALTITUDE_PM = 2900 #meters, target altitude at point merge start
 ALT_CONTROL_TIMESTEP = 15
+
+SET_TARGET_HEADING = False #if True, commands CR module, otherwise executes heading command directly
 
 def init_plugin():
     singleagentpathplanning = SingleAgentPathPlanning()
@@ -79,8 +83,12 @@ class SingleAgentPathPlanning(core.Entity):
     
     def _set_action(self, action, idx):
         bearing = np.rad2deg(np.arctan2(action[0],action[1]))
-        traf.target_heading[idx] = bearing
-        # stack.stack(f'heading {traf.id[idx]} {bearing}')
+        if SET_TARGET_HEADING:
+            traf.target_heading[idx] = bearing
+        elif traf.merge_rwy[idx] == 0:
+            speed = get_speed_at_altitude(traf.alt[idx]) * MpS2Kt
+            stack.stack(f'SPD {traf.id[idx]} {speed}')
+            stack.stack(f'HDG {traf.id[idx]} {bearing}')
         # if traf.merge_rwy[idx] == 0:
         #     traf.ap.selhdgcmd(idx,bearing) # could consider HDG stack command here
 

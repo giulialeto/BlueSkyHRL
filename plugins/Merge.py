@@ -17,7 +17,9 @@ GLIDE_SLOPE = 3 #degree
 ALT_PER_KM = (np.tan(np.radians(GLIDE_SLOPE))*1000)*M2FEET #feet
 
 DISTANCE_MARGIN_FAF = 2 # km
-DISTANCE_MARGIN_RWY = 5 # km
+DISTANCE_MARGIN_RWY = 0.2 # km
+
+DIRECT_MERGE = True
 
 def init_plugin():
     merge = Merge()
@@ -60,7 +62,7 @@ class Merge(core.Entity):
             observations = self._get_obs(ids,runway)
             obs_array = np.array(list(observations.values()))
 
-            if len(ids)>1:
+            if len(ids)>1 and not DIRECT_MERGE:
                 action = self.model(torch.FloatTensor(np.array([obs_array])))
                 action = np.array(action[0].detach().numpy())
                 act_array = np.clip(action, -1, 1)
@@ -70,9 +72,13 @@ class Merge(core.Entity):
                     self._set_action(action,idx, runway)
 
             else:
-                self._set_zero_drift(ids[0], runway)
-                req_altitude = self._get_altitude_command(ids[0],runway)
-                stack.stack(f'ALT {ids[0]} {req_altitude}')
+                for id in ids:
+                    self._set_zero_drift(id, runway)
+                    req_altitude = self._get_altitude_command(id,runway)
+                    idx = traf.id2idx(id)
+                    speed = fn.get_speed_at_altitude(traf.alt[idx]) * MpS2Kt
+                    stack.stack(f'SPD {id} {speed}')
+                    stack.stack(f'ALT {id} {req_altitude}')
         
             for id in ids:
                 idx = traf.id2idx(id)
@@ -162,15 +168,15 @@ class Merge(core.Entity):
         heading_new = fn.bound_angle_positive_negative_180(traf.hdg[idx] + dh)
         speed_new = (traf.cas[idx] + dv) 
 
-        # limit speed based on altitude
-        altitude = traf.alt[idx]
-        speed_new = fn.get_speed_at_altitude(altitude,speed_new) * MpS2Kt
-
         if STRAIGHT_RWY and self.wpt_reach[idx]:
             runway = traf.merge_rwy[idx]
             self._set_zero_drift(traf.id[idx],runway)
         else:
             stack.stack(f"HDG {traf.id[idx]} {heading_new}")
+
+        # limit speed based on altitude
+        altitude = traf.alt[idx]
+        speed_new = fn.get_speed_at_altitude(altitude,speed_new) * MpS2Kt
 
         stack.stack(f"SPD {traf.id[idx]} {speed_new}")
 
