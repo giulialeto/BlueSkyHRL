@@ -28,9 +28,10 @@ import numpy as np
 import pandas as pd
 import plugins.MultiAgentCRTools as MACR
 import torch
+import os
 
-SAVE_INTERVAL = 600 # every 10 minutes
-FOLDER = 'output/experiment'
+SAVE_INTERVAL = 3600 # every 60 minutes
+FOLDER = 'output/15ac_1_direct'
 
 
 def init_plugin():
@@ -49,71 +50,120 @@ class FlightLogger(core.Entity):
     def __init__(self):
         super().__init__()
         # create numpy arrays for each column
-        self.time = []
-        self.icao24 = []
-        self.lat = np.array([])
-        self.lon = np.array([])
-        self.velocity = np.array([])
-        self.heading = np.array([])
-        self.vertrate = np.array([])
-        self.callsign = []
-        self.onground = []
-        self.alert = []
-        self.spi = []
-        self.squawk = []
-        self.baroaltitude = np.array([])
-        self.geoaltitude = np.array([])
-        self.lastposupdate = []
-        self.lastcontact = []
-        self.serials = np.array([]) # unsure what to log here
-        self.hour = []
+        # self.time = []
+        # self.icao24 = []
+        # self.lat = np.array([])
+        # self.lon = np.array([])
+        # self.velocity = np.array([])
+        # self.heading = np.array([])
+        # self.vertrate = np.array([])
+        # self.callsign = []
+        # self.onground = []
+        # self.alert = []
+        # self.spi = []
+        # self.squawk = []
+        # self.baroaltitude = np.array([])
+        # self.geoaltitude = np.array([])
+        # self.lastposupdate = []
+        # self.lastcontact = []
+        # self.serials = np.array([]) # unsure what to log here
+        # self.hour = []
+
+        self.buffer = {
+                "time": [],
+                "icao24": [],
+                "lat": [],
+                "lon": [],
+                "velocity": [],
+                "heading": [],
+                "vertrate": [],
+                "callsign": [],
+                "onground": [],
+                "alert": [],
+                "spi": [],
+                "squawk": [],
+                "baroaltitude": [],
+                "geoaltitude": [],
+                "lastposupdate": [],
+                "lastcontact": [],
+                "serials": [],
+                "hour": []
+            }
 
     @core.timed_function(name='FlightLogger', dt=10)
     def update(self):
-        self.time.extend([sim.utc] * len(traf.id))
-        self.icao24.extend(traf.id)
+        # self.time.extend([sim.utc] * len(traf.id))
+        # self.icao24.extend(traf.id)
 
-        self.lat = np.append(self.lat, traf.lat)
-        self.lon = np.append(self.lon, traf.lon)
-        self.velocity = np.append(self.velocity, traf.gs)
-        self.heading = np.append(self.heading, traf.hdg)
-        self.vertrate = np.append(self.vertrate, traf.vs)
+        # self.lat = np.append(self.lat, traf.lat)
+        # self.lon = np.append(self.lon, traf.lon)
+        # self.velocity = np.append(self.velocity, traf.gs)
+        # self.heading = np.append(self.heading, traf.hdg)
+        # self.vertrate = np.append(self.vertrate, traf.vs)
 
-        self.callsign.extend(traf.id)
-        self.onground.extend([False] * len(traf.id))
-        self.alert.extend([False] * len(traf.id))
-        self.spi.extend([False] * len(traf.id))
-        self.squawk.extend([False] * len(traf.id))
+        # self.callsign.extend(traf.id)
+        # self.onground.extend([False] * len(traf.id))
+        # self.alert.extend([False] * len(traf.id))
+        # self.spi.extend([False] * len(traf.id))
+        # self.squawk.extend([False] * len(traf.id))
 
-        self.baroaltitude = np.append(self.baroaltitude, traf.alt)
-        self.geoaltitude = np.append(self.geoaltitude, traf.alt)
+        # self.baroaltitude = np.append(self.baroaltitude, traf.alt)
+        # self.geoaltitude = np.append(self.geoaltitude, traf.alt)
 
-        self.lastposupdate.extend([sim.utc] * len(traf.id))
-        self.lastcontact.extend([sim.utc] * len(traf.id))
+        # self.lastposupdate.extend([sim.utc] * len(traf.id))
+        # self.lastcontact.extend([sim.utc] * len(traf.id))
         
-        self.serials = np.append(self.serials, traf.lat)
-        self.hour.extend([sim.utc.replace(minute=0, second=0, microsecond=0)] * len(traf.id))
+        # self.serials = np.append(self.serials, traf.lat)
+        # self.hour.extend([sim.utc.replace(minute=0, second=0, microsecond=0)] * len(traf.id))
+
+        self.buffer["time"].extend([sim.utc] * len(traf.id))
+        self.buffer["icao24"].extend(traf.id)
+        self.buffer["lat"].extend(traf.lat)
+        self.buffer["lon"].extend(traf.lon)
+        self.buffer["velocity"].extend(traf.gs)
+        self.buffer["heading"].extend(traf.hdg)
+        self.buffer["vertrate"].extend(traf.vs)
+        self.buffer["callsign"].extend(traf.id)  # duplicate unless changed
+        self.buffer["onground"].extend([False] * len(traf.id))
+        self.buffer["alert"].extend([False] * len(traf.id))
+        self.buffer["spi"].extend([False] * len(traf.id))
+        self.buffer["squawk"].extend([False] * len(traf.id))
+        self.buffer["baroaltitude"].extend(traf.alt)
+        self.buffer["geoaltitude"].extend(traf.alt)
+        self.buffer["lastposupdate"].extend([sim.utc] * len(traf.id))
+        self.buffer["lastcontact"].extend([sim.utc] * len(traf.id))
+        self.buffer["serials"].extend(traf.lat)
+        self.buffer["hour"].extend([sim.utc.replace(minute=0, second=0, microsecond=0)] * len(traf.id))
 
     @core.timed_function(dt=SAVE_INTERVAL)
     def save(self):
-        save_data = pd.DataFrame({
-            "time": self.time,
-            "icao24": self.icao24,
-            "lat": self.lat,
-            "lon": self.lon,
-            "velocity": self.velocity,
-            "heading": self.heading,
-            "vertrate": self.vertrate,
-            "callsign": self.callsign,
-            "onground": self.onground,
-            "alert": self.alert,
-            "spi": self.spi,
-            "squawk": self.squawk,
-            "baroaltitude": self.baroaltitude,
-            "geoaltitude": self.geoaltitude,
-            "lastposupdate": self.lastposupdate,
-            "lastcontact": self.lastcontact,
-            "hour": self.hour
-        })
+        # save_data = pd.DataFrame({
+        #     "time": self.time,
+        #     "icao24": self.icao24,
+        #     "lat": self.lat,
+        #     "lon": self.lon,
+        #     "velocity": self.velocity,
+        #     "heading": self.heading,
+        #     "vertrate": self.vertrate,
+        #     "callsign": self.callsign,
+        #     "onground": self.onground,
+        #     "alert": self.alert,
+        #     "spi": self.spi,
+        #     "squawk": self.squawk,
+        #     "baroaltitude": self.baroaltitude,
+        #     "geoaltitude": self.geoaltitude,
+        #     "lastposupdate": self.lastposupdate,
+        #     "lastcontact": self.lastcontact,
+        #     "hour": self.hour
+        # })
 
-        save_data.to_csv(f'{FOLDER}/flight_output.csv', sep=",")
+        # save_data.to_csv(f'{FOLDER}/flight_output.csv', sep=",")
+
+
+        df = pd.DataFrame(self.buffer)
+        csv_path = f"{FOLDER}/flight_output.csv"
+        df.to_csv(csv_path, mode='a', header=not os.path.exists(csv_path), index=False)
+
+        # Clear buffer after saving
+        for key in self.buffer:
+            self.buffer[key].clear()

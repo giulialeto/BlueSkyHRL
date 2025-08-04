@@ -11,8 +11,8 @@ import torch
 from plugins.LoggerTools import noise_logger
 from plugins.LoggerTools import fuel_logger
 
-SAVE_INTERVAL = 600 # every 10 minutes
-FOLDER = 'output/experiment'
+SAVE_INTERVAL = 3600 # every 60 minutes
+FOLDER = 'output/15ac_1_direct'
 
 def init_plugin():
     summarylogger = SummaryLogger()
