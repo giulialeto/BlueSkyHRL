@@ -2,9 +2,13 @@ from bluesky import core, stack, traf, tools, settings
 from stable_baselines3 import SAC
 import numpy as np
 import plugins.SingleAgentCRTools as SACR
+import plugins.CommonTools.functions as fn
 
 # TODO make this such that you can select the algorithm in settings
 settings.set_variable_defaults(SingleAgentCR_alg='SB3-SAC')
+
+MIN_DIST_CORR = True
+MIN_DIST = 45 #NM
 
 def init_plugin():
     singleagentconflictresolution = SingleAgentConflictResolution()
@@ -29,10 +33,22 @@ class SingleAgentConflictResolution(core.Entity):
     def update(self):
         for id in traf.id:
             idx = traf.id2idx(id)
-            obs = self._get_obs(idx)
-            clipped_obs = {key: np.clip(arr, -1.2, 1.2) for key, arr in obs.items()}
-            action, _ = self.model.predict(clipped_obs, deterministic=True)
-            self._set_action(action,idx)
+            if MIN_DIST_CORR:
+                _, dist = tools.geo.kwikqdrdist_matrix(traf.lat[idx],traf.lon[idx],traf.lat,traf.lon)
+                dist = dist[dist>0]
+                if (dist.size == 0 or min(dist) > MIN_DIST) and traf.merge_rwy[idx] == 0:
+                    stack.stack(f"HDG {id} {traf.target_heading[idx]}")
+                elif traf.merge_rwy[idx] == 0:
+                    obs = self._get_obs(idx)
+                    clipped_obs = {key: np.clip(arr, -1.2, 1.2) for key, arr in obs.items()}
+                    action, _ = self.model.predict(clipped_obs, deterministic=True)
+                    self._set_action(action,idx)
+            elif traf.merge_rwy[idx] == 0:
+                obs = self._get_obs(idx)
+                clipped_obs = {key: np.clip(arr, -1.2, 1.2) for key, arr in obs.items()}
+                action, _ = self.model.predict(clipped_obs, deterministic=True)
+                self._set_action(action,idx)
+
     
     def create(self, n=1):
         super().create(n)
@@ -106,22 +122,34 @@ class SingleAgentConflictResolution(core.Entity):
             "cos(drift)": np.array([cos_drift]),
             "sin(drift)": np.array([sin_drift]),
             "airspeed": np.array([(airspeed-150)/6]),
-            "x_r": x_r[:SACR.constants.NUM_AC_STATE]/13000,
-            "y_r": y_r[:SACR.constants.NUM_AC_STATE]/13000,
-            "vx_r": vx_r[:SACR.constants.NUM_AC_STATE]/32,
-            "vy_r": vy_r[:SACR.constants.NUM_AC_STATE]/66,
-            "cos(track)": cos_track[:SACR.constants.NUM_AC_STATE],
-            "sin(track)": sin_track[:SACR.constants.NUM_AC_STATE],
-            "distances": (distances[:SACR.constants.NUM_AC_STATE]-50000.)/15000.
+            "x_r": self._pad_arr(x_r, SACR.constants.NUM_AC_STATE)/13000,
+            "y_r": self._pad_arr(y_r, SACR.constants.NUM_AC_STATE)/13000,
+            "vx_r": self._pad_arr(vx_r, SACR.constants.NUM_AC_STATE)/32,
+            "vy_r": self._pad_arr(vy_r, SACR.constants.NUM_AC_STATE)/66,
+            "cos(track)": self._pad_arr(cos_track, SACR.constants.NUM_AC_STATE),
+            "sin(track)": self._pad_arr(sin_track, SACR.constants.NUM_AC_STATE),
+            "distances": (self._pad_arr(distances, SACR.constants.NUM_AC_STATE)-50000.)/15000
         }
 
         return observation
-    
+
+    def _pad_arr(self, arr, target_length):
+        arr = np.asarray(arr)
+        if len(arr) < target_length:
+            pad_len = target_length - len(arr)
+            arr = np.concatenate([arr, np.full(pad_len, arr[0])])
+        return arr[:target_length]  # ensures max length
+        
     def _set_action(self, action, idx):
         dh = action[0] * SACR.constants.D_HEADING
         dv = action[1] * SACR.constants.D_VELOCITY
+
         heading_new = SACR.functions.bound_angle_positive_negative_180(traf.hdg[idx] + dh)
-        speed_new = (traf.cas[idx] + dv) * SACR.constants.MpS2Kt
+        speed_new = (traf.cas[idx] + dv)
+
+        # limit speed based on altitude
+        altitude = traf.alt[idx]
+        speed_new = fn.get_speed_at_altitude(altitude,speed_new) * SACR.constants.MpS2Kt
 
         id = traf.id[idx]
         stack.stack(f"HDG {id} {heading_new}")

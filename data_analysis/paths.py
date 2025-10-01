@@ -3,7 +3,7 @@ from bluesky.tools.aero import ft, kts
 from data_analysis.opensky_tools.plot_trajectory import plot_trajectory, plot_trajectory_line, plot_trajectory_clickable
 import numpy as np
 
-data = pd.read_csv('output/experiment/flight_output.csv')
+data = pd.read_csv("output/65ac_1_direct/flight_output.csv")
 
 data = data.rename(
         columns={

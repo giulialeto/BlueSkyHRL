@@ -3,22 +3,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-file1 = "output/15ac_2/summary.csv"
-file2 = "output/experiment/summary.csv"
-file3 = "output/experiment/summary.csv"
+file1 = "output/15ac_1/summary.csv"
+file2 = "output/35ac_1/summary.csv"
+file3 = "output/65ac_1/summary.csv"
 
-data1 = pd.read_csv(file1)
-data2 = pd.read_csv(file2)
-data3 = pd.read_csv(file3)
+file4 = "output/15ac_1_SA/summary.csv"
+file5 = "output/35ac_1_SA/summary.csv"
+file6 = "output/65ac_1_SA/summary.csv"
 
-# Assign density categories
-data1['Density'] = 'low'
-data2['Density'] = 'medium'
-data3['Density'] = 'high'
+file7 = "output/15ac_1_direct/summary.csv"
+file8 = "output/35ac_1_direct/summary.csv"
+file9 = "output/65ac_1_direct/summary.csv"
 
-# Combine all data
-combined_data = pd.concat([data1, data2, data3], ignore_index=True)
+files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
+traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High","Low", "Medium", "High"]
+methods = ['MA','MA','MA','SA','SA','SA','direct','direct','direct']
 
+results = []
+
+for file, level, method in zip(files, traffic_levels,methods):
+    data = pd.read_csv(file)
+    data['Traffic Density'] = level
+    data['Method'] = method
+
+    results.append(data)
+
+combined_data = pd.concat(results,ignore_index=True)
 sns.set(style="whitegrid")
 
 fig, ax1 = plt.subplots(figsize=(8, 6))
@@ -27,8 +37,8 @@ fig, ax1 = plt.subplots(figsize=(8, 6))
 color_conf = "tab:blue"
 sns.lineplot(
     data=combined_data,
-    x="Density", y="total_noise", ax=ax1,
-    marker="o", color=color_conf, label="Noise Emissions"
+    x="Traffic Density", y="total_noise", ax=ax1,
+    style="Method", color=color_conf
 )
 ax1.set_ylabel("Noise Emissions", color=color_conf)
 ax1.tick_params(axis='y', labelcolor=color_conf)
@@ -39,8 +49,8 @@ ax2 = ax1.twinx()
 color_intr = "tab:red"
 sns.lineplot(
     data=combined_data,
-    x="Density", y="total_fuel", ax=ax2,
-    marker="s", linestyle="--", color=color_intr, label="Fuel Emissions"
+    x="Traffic Density", y="total_fuel", ax=ax2,
+    style="Method", color=color_intr
 )
 ax2.set_ylabel("Fuel Emissions", color=color_intr)
 ax2.tick_params(axis='y', labelcolor=color_intr)

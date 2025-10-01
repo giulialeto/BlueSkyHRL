@@ -31,7 +31,7 @@ import torch
 import os
 
 SAVE_INTERVAL = 3600 # every 60 minutes
-FOLDER = 'output/15ac_1_direct'
+FOLDER = 'output/temp'
 
 
 def init_plugin():

@@ -8,6 +8,8 @@ import torch
 
 FAF_DISTANCE = 25 #km
 STRAIGHT_RWY = True
+DIRECT_MERGE = True
+DEL_FAF = True
 
 D_HEADING = 22.5 # deg
 D_VELOCITY = 20/3 # kts
@@ -19,7 +21,7 @@ ALT_PER_KM = (np.tan(np.radians(GLIDE_SLOPE))*1000)*M2FEET #feet
 DISTANCE_MARGIN_FAF = 2 # km
 DISTANCE_MARGIN_RWY = 0.2 # km
 
-DIRECT_MERGE = True
+
 
 def init_plugin():
     merge = Merge()
@@ -208,6 +210,8 @@ class Merge(core.Entity):
     def _check_waypoint(self, idx):
         if self.waypoint_dist[idx] < DISTANCE_MARGIN_FAF and self.wpt_reach[idx] != 1:
             self.wpt_reach[idx] = 1
+            if DEL_FAF:
+                stack.stack(f"DEL {traf.id[idx]}")
         elif self.waypoint_dist[idx] < DISTANCE_MARGIN_RWY and self.wpt_reach[idx] == 1:
             stack.stack(f"DEL {traf.id[idx]}")
 

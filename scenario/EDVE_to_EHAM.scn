@@ -1,0 +1,21 @@
+# Scenario file: EDVE_to_EHAM.scn
+#
+# Flight departs Braunschweig (EDVE), follows 5 waypoints,
+# and lands at Amsterdam Schiphol (EHAM).
+#
+
+00:00:00.00>CRE AAL123, B738, EDVE,, 1000, 250
+
+# Define route with waypoints
+00:00:01.00>ADDWPT AAL123 WRB
+00:00:02.00>ADDWPT AAL123 OSN
+00:00:03.00>ADDWPT AAL123 NVO
+00:00:04.00>ADDWPT AAL123 ARTIP
+00:00:05.00>ADDWPT AAL123 SUGOL
+
+# Initial climb clearance
+00:00:10.00>ALT AAL123, 35000
+00:00:11.00>SPD AAL123, 300
+
+# Hand over to destination
+00:00:20.00>DEST AAL123, EHAM

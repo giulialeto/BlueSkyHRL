@@ -3,29 +3,54 @@ from bluesky.tools.aero import ft, kts
 from data_analysis.opensky_tools.conflict_detection import get_conflict_data
 import numpy as np
 
-data = pd.read_csv('output/experiment/flight_output.csv')
+PLOT_INTRUSIONS = False
+r_sep = 5556
+vzh = 300
+alt_cutoff = 1415 #1220
+t_look=200
+number_of_timesteps = 1000000
 
-data = data.rename(
-        columns={
-            "time": "timestamp",
-            "lat": "latitude",
-            "lon": "longitude",
-            "heading": "track",
-        }
-    ).drop(columns=["geoaltitude"])
+chunk_size = 10000
 
-data = data.assign(
-        altitude=data.baroaltitude / ft,
-        vertical_rate=data.vertrate / ft * 60,
-        groundspeed=data.velocity / kts,
-    )
+chunks = pd.read_csv('output/65ac_1_SA/flight_output.csv',chunksize=chunk_size)
 
-summary, conf_df, conflict_counts, intrusion_counts = get_conflict_data(data, r=5556, save=True, tlook=100, alt_cutoff=1220)
+conf_dfs = []
+total_rows = 0
+for chunk in chunks:
+    rows_needed = number_of_timesteps - total_rows
+    if rows_needed < 0:
+        break
+    total_rows += len(chunk)
+    chunk = chunk.rename(
+            columns={
+                "time": "timestamp",
+                "lat": "latitude",
+                "lon": "longitude",
+                "heading": "track",
+            }
+        ).drop(columns=["geoaltitude"])
+
+    chunk = chunk.assign(
+            altitude=chunk.baroaltitude / ft,
+            vertical_rate=chunk.vertrate / ft * 60,
+            groundspeed=chunk.velocity / kts,
+        )
+
+    summary, conf_df, conflict_counts, intrusion_counts = get_conflict_data(chunk[:rows_needed], r=r_sep, save=True, tlook=t_look, alt_cutoff=alt_cutoff)
+
+    conf_dfs.append(conf_df)
+
+conf_df = pd.concat(conf_dfs, ignore_index=True)
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+
+if PLOT_INTRUSIONS:
+    conf_df = conf_df[(conf_df['dalt'] < vzh) & (conf_df['alt'] > alt_cutoff) & (conf_df['dist']<r_sep)]
+else:
+    conf_df = conf_df[(conf_df['dalt'] < vzh) & (conf_df['alt'] > alt_cutoff)]
 
 # Parameters
 lon_min, lon_max = 3, 8

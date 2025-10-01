@@ -4,9 +4,18 @@ import openap
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+from bluesky import tools
 from data_analysis.opensky_tools.statebased import detect
 
 pd.set_option('future.no_silent_downcasting', True)
+schiphol = np.array([52.3068953,4.760783])
+
+def haversine(lat1, lon1, lat2, lon2):
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1 
+    dlon = lon2 - lon1 
+    a = np.sin(dlat / 2.0) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0) ** 2
+    return 2 * 6371.0 * np.arcsin(np.sqrt(a))
 
 class BlueSky_Traffic:
     def __init__(self, index, lat, lon, gs, alt, vs, trk):
@@ -19,7 +28,7 @@ class BlueSky_Traffic:
         self.vs = vs
         self.trk = trk
 
-def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutoff=1220, save=False, file_name='conflict.csv'):
+def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutoff=1220, save=False, file_name='conflict.csv', spawn_cutoff=True, cutoff_dist=290):
     df = data
     df = df.sort_values('timestamp')
 
@@ -43,6 +52,11 @@ def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutof
         print(t)
         df_t = df[df['timestamp']==t]
 
+        if spawn_cutoff:
+            df_t = df_t.copy()
+            df_t['dist_schiphol'] = haversine(df_t['latitude'],df_t['longitude'],schiphol[0],schiphol[1])
+            df_t = df_t[df_t['dist_schiphol'] < cutoff_dist ]
+
         icao24 = df_t['icao24'].to_list()
         callsign = df_t['callsign'].to_list()
         lat = df_t['latitude'].to_numpy()
@@ -54,6 +68,7 @@ def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutof
 
         if len(icao24) == 0:
             continue
+
 
         ac = BlueSky_Traffic(icao24,lat,lon,gs,alt,vs,trk)
 
@@ -93,10 +108,10 @@ def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutof
     })
 
     conflict_counts = conf_df[
-        (conf_df['dalt'] < vzh) & (conf_df['alt'] > alt_cutoff)
+        (conf_df['dalt'].abs() < vzh) & (conf_df['alt'] > alt_cutoff)
         ].groupby(['icao24', 'callsign']).size().reset_index(name='conflicts')
     intrusion_counts = conf_df[
-        (conf_df['dist'] < r) & (conf_df['dalt'] < vzh) & (conf_df['alt'] > alt_cutoff)
+        (conf_df['dist'] < r) & (conf_df['dalt'].abs() < vzh) & (conf_df['alt'] > alt_cutoff)
     ].groupby(['icao24', 'callsign']).size().reset_index(name='intrusions')
 
     # summary = summary.merge(conflict_counts, on=['icao24', 'callsign'], how='left')
