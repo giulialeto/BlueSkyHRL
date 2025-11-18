@@ -1,3 +1,17 @@
+# BlueSkyHRL
+This repository is a fork of BlueSky, used for generating the results in the _"Fully autonomous air traffic control with hierarchical reinforcement learning on real world scenarios"_ paper.
+
+
+To run the experiments associated with the historical scenarios, run any of the "schiphol_arrivals..._.scn" within BlueSky.
+
+The scenario files without any additional naming correspond to the MA model. Those with an SA extension to the SA model and the direct extension to the Base model
+
+To run the experiments associated with the synthetic scenarios, modify the config file to enable the plugins (under 'enabled_plugins = [...]') associated with the corresponding models highlighted at the beginning of the scenario files. Additionally, the TrafficGenerator plugin should be loaded. As an example, the following line will start a synthetic run using the MA model:
+
+    enabled_plugins = ['area', 'datafeed', 'Sink', 'SingleAgentPathPlanning', 'Merge','CR', 'TrafficGenerator' ,'SummaryLogger','FlightLogger']
+
+
+
 # BlueSky - The Open Air Traffic Simulator
 
 [![Open in Visual Studio Code](https://img.shields.io/static/v1?logo=visualstudiocode&label=&message=Open%20in%20Visual%20Studio%20Code&labelColor=2c2c32&color=007acc&logoColor=007acc)](https://open.vscode.dev/TUDelft-CNS-ATM/bluesky)
