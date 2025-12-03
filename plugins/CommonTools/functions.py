@@ -55,6 +55,7 @@ def get_speed_limits_at_altitude(alt):
     for altmin, altmax, speednom, speedmin, speedmax in speed_table:
         if altmin*ft <= alt < altmax*ft:
             return tools.aero.vtas2cas(speedmin*kts,alt), tools.aero.vtas2cas(speedmax*kts,alt)
+    # return 142*0.9, 447*1.1
 
 def bound_angle_positive_negative_180(angle_deg: float) -> float:
     """ maps any angle in degrees to the [-180,180] interval 

@@ -12,7 +12,7 @@ from plugins.LoggerTools import noise_logger
 from plugins.LoggerTools import fuel_logger
 
 SAVE_INTERVAL = 3600 # every 60 minutes
-FOLDER = 'output/temp'
+FOLDER = 'output/jan_2024_SA'
 
 def init_plugin():
     summarylogger = SummaryLogger()

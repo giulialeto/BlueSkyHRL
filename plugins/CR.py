@@ -6,7 +6,7 @@ import plugins.CommonTools.functions as fn
 from plugins.CommonTools.common import runways_schiphol_faf, NM2KM, schiphol, MpS2Kt
 import torch
 
-MIN_DIST_CORR = True
+MIN_DIST_CORR = False
 MIN_DIST = 45 #NM
 
 def init_plugin():

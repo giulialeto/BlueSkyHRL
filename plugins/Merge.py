@@ -9,7 +9,7 @@ import torch
 FAF_DISTANCE = 25 #km
 STRAIGHT_RWY = True
 DIRECT_MERGE = True
-DEL_FAF = True
+DEL_FAF = False
 
 D_HEADING = 22.5 # deg
 D_VELOCITY = 20/3 # kts

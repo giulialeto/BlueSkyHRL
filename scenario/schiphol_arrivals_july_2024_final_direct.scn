@@ -1,7 +1,6 @@
 00:00:00.00>plugin Sink
 00:00:00.00>plugin SingleAgentPathPlanning
 00:00:00.00>plugin Merge
-00:00:00.00>plugin CR
 00:00:00.00>plugin SummaryLogger
 00:00:00.00>plugin FlightLogger
 01:14:30.00>CRE kl1, A320 ,49.9049,2.8553,26,FL380,246

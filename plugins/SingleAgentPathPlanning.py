@@ -14,7 +14,7 @@ GLIDE_SLOPE = np.deg2rad(3) #degrees
 TARGET_ALTITUDE_PM = 2900 #meters, target altitude at point merge start
 ALT_CONTROL_TIMESTEP = 15
 
-SET_TARGET_HEADING = False #if True, commands CR module, otherwise executes heading command directly
+SET_TARGET_HEADING = True #if True, commands CR module, otherwise executes heading command directly
 
 def init_plugin():
     singleagentpathplanning = SingleAgentPathPlanning()

@@ -2,31 +2,61 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-time_cutoff = 500 #maximum number of seconds between landings for interest
-threshold = 60 #minimum interval between landings for the runways
+RUNWAY = "27"
 
-file1 = "output/15ac_1/delete.csv"
-file2 = "output/35ac_1/delete.csv"
-file3 = "output/65ac_1/delete.csv"
+time_cutoff = 150 #maximum number of seconds between landings for interest
+threshold = 50 #minimum interval between landings for the runways
 
-file4 = "output/15ac_1_SA/delete.csv"
-file5 = "output/35ac_1_SA/delete.csv"
-file6 = "output/65ac_1_SA/delete.csv"
+# file1 = "output/15ac_1/delete.csv"
+# file2 = "output/35ac_1/delete.csv"
+# file3 = "output/65ac_1/delete.csv"
 
-file7 = "output/15ac_1_direct/delete.csv"
-file8 = "output/35ac_1_direct/delete.csv"
-file9 = "output/65ac_1_direct/delete.csv"
+# file4 = "output/15ac_1_SA/delete.csv"
+# file5 = "output/35ac_1_SA/delete.csv"
+# file6 = "output/65ac_1_SA/delete.csv"
 
-files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
-traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High","Low", "Medium", "High"]
-methods = ['MA','MA','MA','SA','SA','SA','direct','direct','direct']
+# file7 = "output/15ac_1_direct/delete.csv"
+# file8 = "output/35ac_1_direct/delete.csv"
+# file9 = "output/65ac_1_direct/delete.csv"
 
-number_of_timesteps = 10000
+# files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
+# traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High","Low", "Medium", "High"]
+# methods = ['MA','MA','MA','SA','SA','SA','direct','direct','direct']
+
+FILES1 = [
+    "output/synthetic/15ac_1/delete.csv",
+    "output/synthetic/35ac_1/delete.csv",
+    "output/synthetic/65ac_1/delete.csv",
+    "output/synthetic/15ac_1_SA/delete.csv",
+    "output/synthetic/35ac_1_SA/delete.csv",
+    "output/synthetic/65ac_1_SA/delete.csv",
+    "output/synthetic/15ac_1_direct/delete.csv",
+    "output/synthetic/35ac_1_direct/delete.csv",
+    "output/synthetic/65ac_1_direct/delete.csv",
+]
+FILES2 = [
+    "output/jan_2024/delete.csv",
+    "output/march_2024/delete.csv",
+    "output/july_2024/delete.csv",
+    "output/jan_2024_SA/delete.csv",
+    "output/march_2024_SA/delete.csv",
+    "output/july_2024_SA/delete.csv",
+    "output/jan_2024_direct/delete.csv",
+    "output/march_2024_direct/delete.csv",
+    "output/july_2024_direct/delete.csv",
+]
+
+FILES = FILES1 + FILES2
+
+TRAFFIC_LEVELS = ["Low", "Medium", "High"] * 3 + ["Jan", "Mar", "Jul"] * 3
+METHODS = (["MA"] * 3 + ["SA"] * 3 + ["direct"] * 3) * 2
+
+number_of_timesteps = 10000000000
 chunk_size = 10000
 
 results = []
 
-for file, level, method in zip(files, traffic_levels,methods):
+for file, level, method in zip(FILES, TRAFFIC_LEVELS, METHODS):
     chunks = pd.read_csv(file,chunksize=chunk_size)
     total_rows = 0
 
@@ -46,6 +76,10 @@ for file, level, method in zip(files, traffic_levels,methods):
     # Step 1: Sort by runway and landing time
     landing_data_sorted = landing_data.sort_values(by=['runway', 'landing_time'])
 
+    # Step 1.5: filter only for specific runway
+    if RUNWAY is not None:
+        landing_data_sorted = landing_data_sorted[landing_data_sorted['runway']==RUNWAY]
+
     # Step 2: Group by runway and calculate the time difference
     landing_data_sorted['time_diff'] = landing_data_sorted.groupby('runway')['landing_time'].diff()
 
@@ -60,7 +94,7 @@ color_map = {
     "direct": "orange"
 }
 
-order = ["Low", "Medium", "High"]
+order = ["Low", "Medium", "High", "Jan", "Mar", "Jul"]
 
 landing_data = pd.concat(results, ignore_index=True)
 

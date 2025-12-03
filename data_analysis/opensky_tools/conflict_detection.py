@@ -49,7 +49,7 @@ def get_conflict_data(data, summary=None, r=9260, vzh=300, tlook=1000, alt_cutof
     
 
     for t in df['timestamp'].unique():
-        print(t)
+        # print(t)
         df_t = df[df['timestamp']==t]
 
         if spawn_cutoff:

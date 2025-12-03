@@ -6,6 +6,8 @@ import seaborn as sns
 from data_analysis.opensky_tools.conflict_detection import get_conflict_data
 from bluesky.tools.aero import ft, kts
 
+## HAVE TO FILTER FOR INVALID FLIGHTS
+
 tlook = 500 #s
 alt_cutoff = 1415 #m
 r_sep = 5556 #m
@@ -23,7 +25,10 @@ file7 = "output/15ac_1_direct/flight_output.csv"
 file8 = "output/35ac_1_direct/flight_output.csv"
 file9 = "output/65ac_1_direct/flight_output.csv"
 
-files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
+file10 = "output/jan_2024/flight_output.csv"
+
+# files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
+files = [file10]
 traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High","Low", "Medium", "High"]
 methods = ['MA','MA','MA','SA','SA','SA','direct','direct','direct']
 
@@ -64,6 +69,7 @@ for file, level, method in zip(files, traffic_levels,methods):
         summary, conf_df, conflict_counts, intrusion_counts = get_conflict_data(chunk[:rows_needed], r=r_sep, save=save, tlook=tlook, alt_cutoff=alt_cutoff)
         total_conflicts += len(conflict_counts)
         total_conflict_time += conflict_counts['conflicts'].sum()
+        print(intrusion_counts)
         total_intrusions += len(intrusion_counts)
         total_intrusion_time += intrusion_counts['intrusions'].sum()
 

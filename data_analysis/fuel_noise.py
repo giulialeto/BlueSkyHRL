@@ -3,25 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-file1 = "output/15ac_1/summary.csv"
-file2 = "output/35ac_1/summary.csv"
-file3 = "output/65ac_1/summary.csv"
+## HAVE TO FILTER FOR INVALID FLIGHTS
 
-file4 = "output/15ac_1_SA/summary.csv"
-file5 = "output/35ac_1_SA/summary.csv"
-file6 = "output/65ac_1_SA/summary.csv"
+FILES = [
+    "output/synthetic/15ac_1/summary.csv",
+    "output/synthetic/35ac_1/summary.csv",
+    "output/synthetic/65ac_1/summary.csv",
+    "output/synthetic/15ac_1_SA/summary.csv",
+    "output/synthetic/35ac_1_SA/summary.csv",
+    "output/synthetic/65ac_1_SA/summary.csv",
+    "output/synthetic/15ac_1_direct/summary.csv",
+    "output/synthetic/35ac_1_direct/summary.csv",
+    "output/synthetic/65ac_1_direct/summary.csv",
+]
 
-file7 = "output/15ac_1_direct/summary.csv"
-file8 = "output/35ac_1_direct/summary.csv"
-file9 = "output/65ac_1_direct/summary.csv"
-
-files = [file1, file2, file3,file4,file5,file6,file7,file8,file9]
-traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High","Low", "Medium", "High"]
+traffic_levels = ["Low", "Medium", "High","Low", "Medium", "High"]
 methods = ['MA','MA','MA','SA','SA','SA','direct','direct','direct']
-
+methods = ['MA','MA','MA','direct','direct','direct']
 results = []
 
-for file, level, method in zip(files, traffic_levels,methods):
+for file, level, method in zip(FILES, traffic_levels,methods):
     data = pd.read_csv(file)
     data['Traffic Density'] = level
     data['Method'] = method

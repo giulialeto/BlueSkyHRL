@@ -1,10 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.cm as cm
+from matplotlib.collections import LineCollection
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from datetime import datetime
 from math import cos, radians
+import numpy as np
 
 # Schiphol coordinates
 center_lat, center_lon = 52.31, 4.77
@@ -82,6 +85,89 @@ def plot_trajectory_clickable(traffic_data, c_feature='altitude', label='altitud
 
     fig.canvas.mpl_connect('pick_event', on_pick)
 
+    plt.show()
+
+
+def plot_trajectory_clickable2(traffic_data, c_feature='altitude', label='altitude (m)',
+                              colormap='turbo', scale=None, log_cut_off=0.001, color_dict=None, alpha=0.8,
+                              vmin_plot=None, vmax_plot=None):
+    fig = plt.figure(figsize=(5, 5))
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+
+    # Set map extent based on data or globals
+    lon_min, lon_max = traffic_data.longitude.min(), traffic_data.longitude.max()
+    lat_min, lat_max = traffic_data.latitude.min(), traffic_data.latitude.max()
+
+    ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+
+    # Make the map square (equal aspect in display coordinates)
+    
+
+
+    # Draw coastlines in black (no colors)
+    # ax.coastlines(color='black', linewidth=1)
+    ax.add_feature(cfeature.LAND, color='gainsboro')
+    ax.add_feature(cfeature.OCEAN, color='whitesmoke')
+    # ax.add_feature(cfeature.COASTLINE)
+    # ax.add_feature(cfeature.BORDERS, linestyle=':')
+
+    # Normalization for color mapping
+    vmin, vmax = traffic_data[c_feature].min(), traffic_data[c_feature].max()
+    if scale == 'log':
+        norm = mcolors.LogNorm(vmin=vmin + log_cut_off, vmax=vmax)
+    else:
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+
+    cmap = plt.get_cmap(colormap)
+    lines = []
+    line_map = {}
+
+    for icao, group in traffic_data.groupby('icao24'):
+        group = group.sort_values(by='timestamp')
+
+        if color_dict is not None:
+            color = color_dict[icao]
+
+        # Create list of line segments
+        points = np.array([group.longitude.values, group.latitude.values]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        # Use altitude for each segment (take value at the starting point)
+        altitudes = group[c_feature].values[:-1]
+
+        if color_dict is not None:
+            lc = LineCollection(segments, colors=color, norm=norm, transform=ccrs.PlateCarree(),
+                                linewidth=1.5, alpha=alpha, picker=5)
+        else:
+            lc = LineCollection(segments, cmap=cmap, norm=norm, transform=ccrs.PlateCarree(),
+                                linewidth=1.5, alpha=alpha, picker=5)
+        lc.set_array(altitudes)
+        ax.add_collection(lc)
+
+        lines.append(lc)
+        line_map[lc] = icao
+
+    # Colorbar
+    if not color_dict:
+        sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+        if vmin_plot is not None:
+            sm.set_clim(vmin_plot, vmax_plot)   # add your numeric limits here
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax, orientation='vertical', label=label, shrink=0.75, pad=0.02)
+
+    # Click event
+    def on_pick(event):
+        line = event.artist
+        icao = line_map.get(line, 'Unknown')
+        print(f"Clicked aircraft: {icao}")
+        x_mouse, y_mouse = event.mouseevent.xdata, event.mouseevent.ydata
+        ax.annotate(f'icao24: {icao}', xy=(x_mouse, y_mouse), xycoords='data',
+                    bbox=dict(boxstyle="round", fc="w"), fontsize=9)
+        fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect('pick_event', on_pick)
+    ax.set_aspect('auto')
+    plt.tight_layout()
     plt.show()
 
 def plot_trajectory_line(traffic_data, c_feature='altitude', label='altitude(m)', colormap='viridis', scale=None, log_cut_off=0.001):
